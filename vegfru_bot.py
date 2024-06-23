@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
 from handlers import handler_user, other_handlers
 from handlers.scheduler import database_replication
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # Инициализируем logger
 logger = logging.getLogger(__name__)
 
