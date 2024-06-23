@@ -2,7 +2,7 @@ import gspread
 import logging
 # TEST
 # gp = gspread.service_account(filename='services/test.json')
-gp = gspread.service_account(filename='services/test.json')
+gp = gspread.service_account(filename='services/kingdom.json')
 gsheet = gp.open('Овощи и Фрукты')
 sheet = gsheet.worksheet("price")
 
