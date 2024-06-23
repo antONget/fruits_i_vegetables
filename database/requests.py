@@ -33,12 +33,13 @@ async def add_order(data: dict):
 async def add_item(data: dict):
     logging.info(f'add_item {data}')
     async with async_session() as session:
-        item = await session.scalar(select(Item).where(and_(Item.item == data["item"], Item.item == data["id_order"])))
+        item = await session.scalar(select(Item).where(and_(Item.item == data["item"], Item.id_order == data["id_order"])))
+        # print(Item.item == data["item"], Item.item == data["id_order"])
         if not item:
             session.add(Item(**data))
             await session.commit()
         else:
-            item.count += data['count']
+            item.count = data['count']
             await session.commit()
 
 
@@ -126,6 +127,12 @@ async def get_all_item_id(tg_id: int):
         price_scalar_result: Item = await session.scalars(select(Item).where(Item.telegram_id == tg_id))
         price_list_model = [item for item in price_scalar_result.all()]
         return price_list_model
+
+async def get_info_item(id_item: int):
+    logging.info(f'get_list_product: {id_item}')
+    async with async_session() as session:
+        price_scalar_result: Item = await session.scalar(select(Item).where(Item.id == id_item))
+        return price_scalar_result
 
 """ ------------- UPDATE -------------"""
 

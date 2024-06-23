@@ -9,11 +9,11 @@ from aiogram.fsm.state import State, StatesGroup, default_state
 from config_data.config import Config, load_config
 from database.requests import get_user_info, add_user, update_name_phone, get_list_product, \
     get_product, get_title, get_info_product, add_order, get_all_order_id, add_item, get_all_item_id, update_status,\
-    OrderStatus, update_address
+    OrderStatus, update_address, get_info_item
 from keyboards.keyboard_user import keyboards_get_contact, keyboard_confirm_phone, keyboards_main_menu,\
     keyboards_list_product, keyboards_get_count, keyboard_create_item, keyboard_confirm_order, keyboard_delivery, \
-    keyboard_confirm_address, keyboard_finish_order_p, keyboard_finish_order_d
-from services.get_exel import list_price_to_exel
+    keyboard_confirm_address, keyboard_finish_order_p, keyboard_finish_order_d, keyboards_list_item_change, \
+    keyboard_change_item
 from datetime import datetime
 
 
@@ -269,29 +269,27 @@ async def process_count_product(callback: CallbackQuery, state: FSMContext):
             await state.update_data(count_item=count_item)
             id_product = input_user[2]
             info_product = await get_info_product(id_product=int(id_product))
-            await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
-                                                  f'Стоимость: {info_product.price} руб.\n\n'
-                                                  f'Количество: {count_item} кг.',
-                                             reply_markup=keyboards_get_count(id_product=info_product.id,
-                                                                              count_item=count_item * 10))
+            try:
+                await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
+                                                      f'Стоимость: {info_product.price} руб.\n\n'
+                                                      f'Количество: {count_item} кг.',
+                                                 reply_markup=keyboards_get_count(id_product=info_product.id,
+                                                                                  count_item=count_item * 10))
+            except:
+                pass
         else:
             count_item = int(user_dict[callback.message.chat.id]['count_item']) * 10 + int(digit)
             await state.update_data(count_item=0)
             id_product = input_user[2]
             info_product = await get_info_product(id_product=int(id_product))
-            # await callback.message.edit_text(text=f'Вы выбрали: {info_product.title}\n\n'
-            #                                       f'Количество: {count_item/10}\n'
-            #                                       f'Стоимость: {info_product.price} x {count_item/10} = '
-            #                                       f'{info_product.price * count_item/10}',
-            #                                  reply_markup=keyboard_create_item(
-            #                                      id_product=int(callback.data.split('_')[2]),
-            #                                      count_item=count_item))
-            await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
-                                                  f'Стоимость: {info_product.price} руб.\n\n'
-                                                  f'Количество: {count_item/10} кг.',
-                                             reply_markup=keyboards_get_count(id_product=info_product.id,
-                                                                              count_item=count_item))
-
+            try:
+                await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
+                                                      f'Стоимость: {info_product.price} руб.\n\n'
+                                                      f'Количество: {count_item/10} кг.',
+                                                 reply_markup=keyboards_get_count(id_product=info_product.id,
+                                                                                  count_item=count_item))
+            except:
+                pass
     elif digit == '#':
         print(',,,,,,,')
         user_dict[callback.message.chat.id] = await state.get_data()
@@ -350,7 +348,7 @@ async def add_item_order(callback: CallbackQuery, bot: Bot):
     if callback.data.split('/')[1] != 'cancel':
         # количество товара
         count_item = int(callback.data.split('/')[2])
-        # id товара
+        # id товара в таблице price
         id_product = int(callback.data.split('/')[1])
         # информация о товаре
         info_product = await get_info_product(id_product=id_product)
@@ -477,7 +475,45 @@ async def place_an_order(callback: CallbackQuery, bot: Bot):
 async def order_confirm(callback: CallbackQuery, state: FSMContext):
     logging.info(f'order_confirm: {callback.message.chat.id}')
     await callback.answer()
-    await callback.message.answer(text='Нужно придумать как удобно производить изменение заказа.')
+    id_order = callback.data.split('#')[1]
+    await state.update_data(id_order=id_order)
+    all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
+    list_item = []
+    for item in all_item_id:
+        if item.id_order == id_order:
+            list_item.append(item)
+
+    await callback.message.edit_text(text='Ввберите товар для изменния',
+                                     reply_markup=keyboards_list_item_change(list_item=list_item))
+
+
+@router.callback_query(F.data.startswith('itemchange_'))
+async def item_change(callback: CallbackQuery, state: FSMContext):
+    logging.info(f'item_change: {callback.message.chat.id}')
+    await callback.answer()
+    user_dict[callback.message.chat.id] = await state.get_data()
+    id_order = user_dict[callback.message.chat.id]['id_order']
+    id_item = int(callback.data.split('_')[1])
+    await callback.message.edit_text(text='Вы хотите изменить количество товара или удалить его из заказа?',
+                                     reply_markup=keyboard_change_item(id_item=id_item, id_order=id_order))
+
+
+@router.callback_query(F.data.startswith('itemchange#'))
+async def process_item_change(callback: CallbackQuery, state: FSMContext):
+    logging.info(f'process_item_change: {callback.message.chat.id}')
+    await callback.answer()
+    id_item = int(callback.data.split('#')[1])
+    await state.update_data(comma=0)
+
+    info_item = await get_info_item(id_item=id_item)
+    await state.update_data(count_item=0)
+    info_price = await get_title(title=info_item.item)
+    await callback.message.edit_text(text=f'Вы выбрали: {info_item.item}\n\n'
+                                          f'Количество: {info_item.count/10}\n'
+                                          f'Стоимость: {info_item.price} x {info_item.count/10} = '
+                                          f'{info_item.price * info_item.count/10}',
+                                     reply_markup=keyboards_get_count(id_product=info_price.id,
+                                                                      count_item=info_item.count))
 
 
 @router.callback_query(F.data.startswith('confirm#'))

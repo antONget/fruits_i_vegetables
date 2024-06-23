@@ -8,6 +8,7 @@ from aiogram.fsm.state import State, StatesGroup, default_state
 from database.requests import get_list_users, get_user_info
 from config_data.config import Config, load_config
 from services.get_exel import list_users_to_exel
+from services.googlesheets import get_list_all_rows
 
 import asyncio
 import logging
@@ -85,6 +86,7 @@ async def all_message(message: Message, state: FSMContext) -> None:
     list_super_admin = list(map(int, config.tg_bot.admin_ids.split(',')))
     if message.chat.id in list_super_admin:
         logging.info(f'all_message message.admin')
+
         if message.text == '/get_logfile':
             logging.info(f'all_message message.admin./get_logfile')
             file_path = "py_log.log"
@@ -110,29 +112,32 @@ async def all_message(message: Message, state: FSMContext) -> None:
             file_path = "list_user.xlsx"
             await message.answer_document(FSInputFile(file_path))
 
-    if '/send_message' in message.text:
-        logging.info(f'all_message-/send_message')
-        send = message.text.split('_')
-        if send[2] == "all":
-            await message.answer(text='Пришлите текст чтобы его отправить всем пользователям бота')
-            await state.set_state(Admin.message_all)
-        else:
-            try:
-                id_user = int(send[2])
-                info_user = await get_user_info(tg_id=id_user)
-                if info_user:
-                    result = get_telegram_user(user_id=id_user,
-                                               bot_token=config.tg_bot.token)
-                    if 'result' in result:
-                        await message.answer(text=f'Пришлите текст чтобы его отправить пользователю @{info_user.username}')
-                        await state.update_data(id_user=id_user)
-                        await state.set_state(Admin.message_id)
+        if '/send_message' in message.text:
+            logging.info(f'all_message-/send_message')
+            send = message.text.split('_')
+            if send[2] == "all":
+                await message.answer(text='Пришлите текст чтобы его отправить всем пользователям бота')
+                await state.set_state(Admin.message_all)
+            else:
+                try:
+                    id_user = int(send[2])
+                    info_user = await get_user_info(tg_id=id_user)
+                    if info_user:
+                        result = get_telegram_user(user_id=id_user,
+                                                   bot_token=config.tg_bot.token)
+                        if 'result' in result:
+                            await message.answer(text=f'Пришлите текст чтобы его отправить пользователю @{info_user.username}')
+                            await state.update_data(id_user=id_user)
+                            await state.set_state(Admin.message_id)
+                        else:
+                            await message.answer(text=f'Бот не нашел пользователя {info_user.username}.'
+                                                      f' Возможно он его заблокировал')
                     else:
-                        await message.answer(text=f'Бот не нашел пользователя {info_user.username}.'
-                                                  f' Возможно он его заблокировал')
-                else:
-                    await message.answer(text=f'Бот не нашел пользователя {id_user} в БД')
-            except:
-                await message.answer(text=f'Пришлите после команды /send_message_ id телеграм пользователя')
+                        await message.answer(text=f'Бот не нашел пользователя {id_user} в БД')
+                except:
+                    await message.answer(text=f'Пришлите после команды /send_message_ id телеграм пользователя')
 
+        if message.text == '/googleshhets':
+            list_all_rows = await get_list_all_rows()
+            print(list_all_rows[0])
 

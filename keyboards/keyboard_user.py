@@ -49,6 +49,19 @@ def keyboards_list_product(list_product: list):
     return kb_builder.as_markup()
 
 
+def keyboards_list_item_change(list_item: list):
+    kb_builder = InlineKeyboardBuilder()
+    buttons = []
+    for item in list_item:
+        text = f'{item.item} - {item.count/10} кг.'
+        button = f'itemchange_{item.id}'
+        buttons.append(InlineKeyboardButton(
+            text=text,
+            callback_data=button))
+    kb_builder.row(*buttons, width=1)
+    return kb_builder.as_markup()
+
+
 def keyboards_get_count(id_product: int, count_item: int = 0):
     """
     Клавиатура ввода количества кг товара
@@ -95,6 +108,15 @@ def keyboard_confirm_order(id_order: str):
     button_1 = InlineKeyboardButton(text='Изменить', callback_data=f'change#{id_order}')
     button_2 = InlineKeyboardButton(text='Подтвердить', callback_data=f'confirm#{id_order}')
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2]])
+    return keyboard
+
+
+def keyboard_change_item(id_item: int, id_order: str):
+    logging.info(f'keyboard_confirm_order')
+    button_1 = InlineKeyboardButton(text='Изменить', callback_data=f'itemchange#{id_item}')
+    button_2 = InlineKeyboardButton(text='Удалить', callback_data=f'itemdel#{id_item}')
+    button_3 = InlineKeyboardButton(text='Продолжить', callback_data=f'confirm#{id_order}')
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2], [button_3]])
     return keyboard
 
 
