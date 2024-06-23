@@ -9,6 +9,7 @@ from database.requests import get_list_users, get_user_info
 from config_data.config import Config, load_config
 from services.get_exel import list_users_to_exel
 from services.googlesheets import get_list_all_rows
+from handlers.scheduler import database_replication
 
 import asyncio
 import logging
@@ -141,3 +142,6 @@ async def all_message(message: Message, state: FSMContext) -> None:
             list_all_rows = await get_list_all_rows()
             print(list_all_rows[0])
 
+        if message.text == '/replication':
+            logging.info(f'all_message message.admin./replication')
+            await database_replication()

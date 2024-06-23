@@ -9,7 +9,7 @@ from aiogram.fsm.state import State, StatesGroup, default_state
 from config_data.config import Config, load_config
 from database.requests import get_user_info, add_user, update_name_phone, get_list_product, \
     get_product, get_title, get_info_product, add_order, get_all_order_id, add_item, get_all_item_id, update_status,\
-    OrderStatus, update_address, get_info_item
+    OrderStatus, update_address, get_info_item, delete_item
 from keyboards.keyboard_user import keyboards_get_contact, keyboard_confirm_phone, keyboards_main_menu,\
     keyboards_list_product, keyboards_get_count, keyboard_create_item, keyboard_confirm_order, keyboard_delivery, \
     keyboard_confirm_address, keyboard_finish_order_p, keyboard_finish_order_d, keyboards_list_item_change, \
@@ -483,7 +483,7 @@ async def order_confirm(callback: CallbackQuery, state: FSMContext):
         if item.id_order == id_order:
             list_item.append(item)
 
-    await callback.message.edit_text(text='Ввберите товар для изменния',
+    await callback.message.edit_text(text='Выберите товар для изменения',
                                      reply_markup=keyboards_list_item_change(list_item=list_item))
 
 
@@ -496,6 +496,43 @@ async def item_change(callback: CallbackQuery, state: FSMContext):
     id_item = int(callback.data.split('_')[1])
     await callback.message.edit_text(text='Вы хотите изменить количество товара или удалить его из заказа?',
                                      reply_markup=keyboard_change_item(id_item=id_item, id_order=id_order))
+
+
+@router.callback_query(F.data.startswith('itemdel#'))
+async def process_item_change(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    logging.info(f'process_item_change: {callback.message.chat.id}')
+    await callback.answer()
+    id_item = int(callback.data.split('#')[1])
+    await delete_item(id_item=id_item)
+    user_dict[callback.message.chat.id] = await state.get_data()
+    id_order = user_dict[callback.message.chat.id]['id_order']
+    # all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
+    # list_item = []
+    # for item in all_item_id:
+    #     if item.id_order == id_order:
+    #         list_item.append(item)
+    #
+    # await callback.message.edit_text(text='Ввберите товар для изменния',
+    #                                  reply_markup=keyboards_list_item_change(list_item=list_item))
+    all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
+    text = 'Ваш заказ:\n\n'
+    i = 0
+    total = 0
+    for item in all_item_id:
+        if item.id_order == id_order:
+            i += 1
+            text += f'{i}. {item.item} {item.count / 10} x {item.price} = {(item.count / 10) * item.price} руб.\n'
+            total += (item.count / 10) * item.price
+    text += f'\nИтого: {total} руб.'
+    await callback.message.answer(text=text,
+                                  reply_markup=keyboards_main_menu(basket=total))
+    try:
+        await bot.delete_message(chat_id=callback.message.chat.id,
+                                 message_id=callback.message.message_id)
+    except:
+        pass
+    await callback.message.answer(text='Подтвердите или измените заказ',
+                                  reply_markup=keyboard_confirm_order(id_order=id_order))
 
 
 @router.callback_query(F.data.startswith('itemchange#'))

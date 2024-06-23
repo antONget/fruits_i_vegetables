@@ -8,7 +8,7 @@ from sqlalchemy.sql import and_
 
 import logging
 from dataclasses import dataclass
-from sqlalchemy import select  # , update, delete
+from sqlalchemy import select, update, delete
 
 """ ------------- ADD METHODS -------------"""
 
@@ -175,7 +175,13 @@ async def update_name_phone(tg_id: int, name: str, phone: str):
 """ ------------- DELETE -------------"""
 
 
-async def delete_all_rows_price():
+async def delete_item(id_item: int):
     async with async_session() as session:
-        session.scalar(select(Price).delete())
-        session.commit()
+        await session.execute(delete(Item).where(Item.id == id_item))
+        await session.commit()
+
+
+async def delete_price():
+    async with async_session() as session:
+        await session.execute(delete(Price))
+        await session.commit()
