@@ -14,6 +14,7 @@ from keyboards.keyboard_user import keyboards_get_contact, keyboard_confirm_phon
     keyboards_list_product, keyboards_get_count, keyboard_create_item, keyboard_confirm_order, keyboard_delivery, \
     keyboard_confirm_address, keyboard_finish_order_p, keyboard_finish_order_d, keyboards_list_item_change, \
     keyboard_change_item
+from services.get_exel import list_price_to_exel
 from datetime import datetime
 
 
@@ -229,9 +230,13 @@ async def get_title_product(callback: CallbackQuery, state: FSMContext):
         # print(price_list_title)
         await state.update_data(count_item=0)
         await state.update_data(comma=0)
+        if 'шт' in price_list_title.title:
+            e = 'шт'
+        else:
+            e = 'кг'
         await callback.message.edit_text(text=f'Товар: {price_list_title.title}\n'
-                                              f'Стоимость: {price_list_title.price}\n\n'
-                                              f'Количество: 0 кг.',
+                                              f'Стоимость: {price_list_title.price} руб.\n\n'
+                                              f'Количество: 0 {e}.',
                                          reply_markup=keyboards_get_count(id_product=price_list_title.id))
     elif len(price_list_model) == 0:
         # print(price_list_model)
@@ -239,9 +244,13 @@ async def get_title_product(callback: CallbackQuery, state: FSMContext):
         # print(price_list_title)
         await state.update_data(count_item=0)
         await state.update_data(comma=0)
+        if 'шт' in price_list_title.title:
+            e = 'шт'
+        else:
+            e = 'кг'
         await callback.message.edit_text(text=f'Товар: {price_list_title.title}\n'
-                                         f'Стоимость: {price_list_title.price} руб.\n\n'
-                                         f'Количество: 0 кг.',
+                                              f'Стоимость: {price_list_title.price} руб.\n\n'
+                                              f'Количество: 0 {e}.',
                                          reply_markup=keyboards_get_count(id_product=price_list_title.id))
     else:
         title = []
@@ -262,45 +271,78 @@ async def process_count_product(callback: CallbackQuery, state: FSMContext):
     logging.info(f'get_count_product: {callback.message.chat.id}')
     await callback.answer()
     input_user = callback.data.split('_')
+    # нажатая кнопка
     digit = input_user[1]
+    # если нажатая кнопка цифра
     if digit.isdigit():
         user_dict[callback.message.chat.id] = await state.get_data()
+        # если запятая не нажата
         if user_dict[callback.message.chat.id]['comma'] == 0:
+            # формируем новое число путем добавления в конце строки
             count_item = int(str(user_dict[callback.message.chat.id]['count_item']) + str(digit))
+            # обновляем количество товара
             await state.update_data(count_item=count_item)
+            # получаем id продукта
             id_product = input_user[2]
+            # получаем информацию о продукте
             info_product = await get_info_product(id_product=int(id_product))
+            if 'шт' in info_product.title:
+                e = 'шт'
+            else:
+                e = 'кг'
             try:
                 await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
                                                       f'Стоимость: {info_product.price} руб.\n\n'
-                                                      f'Количество: {count_item} кг.',
+                                                      f'Количество: {count_item} {e}.',
                                                  reply_markup=keyboards_get_count(id_product=info_product.id,
                                                                                   count_item=count_item * 10))
             except:
                 pass
+        # если запятая нажата и введено число
         else:
+            # формируем новое количество товара, увеличиваем на десять текущее количество,
+            # чтобы работать с целыми значениями
             count_item = int(user_dict[callback.message.chat.id]['count_item']) * 10 + int(digit)
+            # обнуляем количество товара, так как после запятой одно число
             await state.update_data(count_item=0)
+            # сбрасываем флаг нажатия запятой
+            await state.update_data(comma=0)
+            # получаем id товара
             id_product = input_user[2]
+            # получаем информацию о товаре
             info_product = await get_info_product(id_product=int(id_product))
+            if 'шт' in info_product.title:
+                e = 'шт'
+            else:
+                e = 'кг'
             try:
                 await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
                                                       f'Стоимость: {info_product.price} руб.\n\n'
-                                                      f'Количество: {count_item/10} кг.',
+                                                      f'Количество: {count_item/10} {e}.',
                                                  reply_markup=keyboards_get_count(id_product=info_product.id,
                                                                                   count_item=count_item))
             except:
                 pass
+    # если нажата запятая
     elif digit == '#':
-        print(',,,,,,,')
+        # обновляем словарь данных
         user_dict[callback.message.chat.id] = await state.get_data()
+        # выставляем флаг ввода десятичных значений
         await state.update_data(comma=1)
+        # получаем текущее количество товара
         count_item = user_dict[callback.message.chat.id]['count_item']
+        # получаем id товара
         id_product = input_user[2]
+        # получаем информацию о товаре
         info_product = await get_info_product(id_product=int(id_product))
+        # отправляем сообщение, добавив десятичную часть и умножив на 10 текущее количество товара
+        if 'шт' in info_product.title:
+            e = 'шт'
+        else:
+            e = 'кг'
         await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
                                               f'Стоимость: {info_product.price} руб.\n\n'
-                                              f'Количество: {count_item},00 кг.',
+                                              f'Количество: {count_item},00 {e}.',
                                          reply_markup=keyboards_get_count(id_product=info_product.id,
                                                                           count_item=count_item*10))
     else:
@@ -308,9 +350,13 @@ async def process_count_product(callback: CallbackQuery, state: FSMContext):
         await state.update_data(count_item=0)
         id_product = input_user[2]
         info_product = await get_info_product(id_product=int(id_product))
+        if 'шт' in info_product.title:
+            e = 'шт'
+        else:
+            e = 'кг'
         await callback.message.edit_text(text=f'Товар: {info_product.title}\n'
                                               f'Стоимость: {info_product.price} руб.\n\n'
-                                              f'Количество: 0 кг.',
+                                              f'Количество: 0 {e}.',
                                          reply_markup=keyboards_get_count(id_product=info_product.id,
                                                                           count_item=0))
 
@@ -328,10 +374,14 @@ async def get_count_product(callback: CallbackQuery):
     count = int(callback.data.split('_')[1])
     # получаем информацию о товаре
     info_product = await get_info_product(id_product=int(callback.data.split('_')[2]))
+    if 'шт' in info_product.title:
+        e = 'шт'
+    else:
+        e = 'кг'
     await callback.message.edit_text(text=f'Вы выбрали: {info_product.title}\n\n'
-                                          f'Количество: {count/10}\n'
+                                          f'Количество: {count/10} {e}.\n'
                                           f'Стоимость: {info_product.price} x {count/10} = '
-                                          f'{info_product.price * count/10}',
+                                          f'{info_product.price * count/10} руб.',
                                      reply_markup=keyboard_create_item(id_product=int(callback.data.split('_')[2]),
                                                                        count_item=count))
 
@@ -546,10 +596,14 @@ async def process_item_change(callback: CallbackQuery, state: FSMContext):
     info_item = await get_info_item(id_item=id_item)
     await state.update_data(count_item=0)
     info_price = await get_title(title=info_item.item)
+    if 'шт' in info_price.title:
+        e = 'шт'
+    else:
+        e = 'кг'
     await callback.message.edit_text(text=f'Вы выбрали: {info_item.item}\n\n'
-                                          f'Количество: {info_item.count/10}\n'
+                                          f'Количество: {info_item.count/10} {e}.\n'
                                           f'Стоимость: {info_item.price} x {info_item.count/10} = '
-                                          f'{info_item.price * info_item.count/10}',
+                                          f'{info_item.price * info_item.count/10} руб.',
                                      reply_markup=keyboards_get_count(id_product=info_price.id,
                                                                       count_item=info_item.count))
 
@@ -559,9 +613,18 @@ async def order_confirm(callback: CallbackQuery, state: FSMContext):
     logging.info(f'order_confirm: {callback.message.chat.id}')
     await callback.answer()
     id_order = callback.data.split('#')[1]
+    all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
+    total = 0
+    for item in all_item_id:
+        if item.id_order == id_order:
+            total += (item.count / 10) * item.price
     await state.update_data(id_order=id_order)
-    await callback.message.edit_text(text='Как бы вы хотели получить ваш заказ?',
-                                     reply_markup=keyboard_delivery())
+    if total < 5000:
+        await callback.message.answer(text='Минимальная сумма заказа 5000 руб.')
+        await press_button_basket(message=callback.message)
+    else:
+        await callback.message.edit_text(text='Как бы вы хотели получить ваш заказ?',
+                                         reply_markup=keyboard_delivery())
 
 
 @router.callback_query(F.data == 'pickup')
