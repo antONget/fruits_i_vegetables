@@ -23,6 +23,7 @@ async def database_replication():
             print(dict_price)
             await replication_database(data=dict_price)
 
+
 if __name__ == '__main__':
     import asyncio
     asyncio.run(database_replication())

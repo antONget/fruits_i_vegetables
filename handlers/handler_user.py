@@ -209,8 +209,16 @@ async def press_button_basket(message: Message):
         for item in all_item_id:
             if item.id_order == all_order_id[-1].id_order:
                 i += 1
-                text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-                total += (item.count/10) * item.price
+                if item.count % 10:
+                    count = item.count / 10
+                else:
+                    count = int(item.count // 10)
+                if (item.price * item.count) % 10:
+                    amount = item.price * count
+                else:
+                    amount = int(item.price * count)
+                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+                total += amount
         text += f'\nИтого: {total} руб.'
         await message.answer(text=text,
                              reply_markup=keyboard_confirm_order(id_order=all_order_id[-1].id_order))
@@ -388,16 +396,25 @@ async def get_count_product(callback: CallbackQuery):
     await callback.answer()
     # получаем количество товара
     count = int(callback.data.split('_')[1])
+    print("count", count)
     # получаем информацию о товаре
     info_product = await get_info_product(id_product=int(callback.data.split('_')[2]))
     if 'шт' in info_product.title:
         e = 'шт'
     else:
         e = 'кг'
+    if count % 10:
+        count_ = count / 10
+    else:
+        count_ = int(count // 10)
+    if (info_product.price * count) % 10:
+        amount = info_product.price * count_
+    else:
+        amount = int(info_product.price * count_)
     await callback.message.edit_text(text=f'Вы выбрали: {info_product.title}\n\n'
-                                          f'Количество: {count/10} {e}.\n'
-                                          f'Стоимость: {info_product.price} x {count/10} = '
-                                          f'{info_product.price * count/10} руб.',
+                                          f'Количество: {count_} {e}.\n'
+                                          f'Стоимость: {info_product.price} x {count_} = '
+                                          f'{amount} руб.',
                                      reply_markup=keyboard_create_item(id_product=int(callback.data.split('_')[2]),
                                                                        count_item=count))
 
@@ -456,8 +473,16 @@ async def add_item_order(callback: CallbackQuery, bot: Bot):
         for item in all_item_id:
             if item.id_order == all_order_id[-1].id_order:
                 i += 1
-                text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-                total += (item.count/10) * item.price
+                if item.count % 10:
+                    count = item.count / 10
+                else:
+                    count = int(item.count // 10)
+                if (info_product.price * item.count) % 10:
+                    amount = item.price * count
+                else:
+                    amount = int(item.price * count)
+                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+                total += amount
         text += f'\nИтого: {total} руб.'
         await callback.message.answer(text='Товар добавлен в заказ',
                                       reply_markup=keyboards_main_menu(basket=total))
@@ -524,8 +549,16 @@ async def place_an_order(callback: CallbackQuery, bot: Bot):
     for item in all_item_id:
         if item.id_order == all_order_id[-1].id_order:
             i += 1
-            text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-            total += (item.count/10) * item.price
+            if item.count % 10:
+                count = item.count / 10
+            else:
+                count = int(item.count // 10)
+            if (info_product.price * item.count) % 10:
+                amount = item.price * count
+            else:
+                amount = int(item.price * count)
+            text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+            total += amount
     text += f'\nИтого: {total} руб.'
     await callback.message.answer(text=text,
                                   reply_markup=keyboards_main_menu(basket=total))
@@ -588,8 +621,16 @@ async def process_item_change(callback: CallbackQuery, state: FSMContext, bot: B
     for item in all_item_id:
         if item.id_order == id_order:
             i += 1
-            text += f'{i}. {item.item} {item.count / 10} x {item.price} = {(item.count / 10) * item.price} руб.\n'
-            total += (item.count / 10) * item.price
+            if item.count % 10:
+                count = item.count / 10
+            else:
+                count = int(item.count // 10)
+            if (item.price * item.count) % 10:
+                amount = item.price * count
+            else:
+                amount = int(item.price * count)
+            text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+            total += amount
     text += f'\nИтого: {total} руб.'
     await callback.message.answer(text=text,
                                   reply_markup=keyboards_main_menu(basket=total))
@@ -616,10 +657,18 @@ async def process_item_change(callback: CallbackQuery, state: FSMContext):
         e = 'шт'
     else:
         e = 'кг'
+    if info_item.count % 10:
+        count = info_item.count / 10
+    else:
+        count = int(info_item.count // 10)
+    if (info_item.price * info_item.count) % 10:
+        amount = info_item.price * count
+    else:
+        amount = int(info_item.price * count)
     await callback.message.edit_text(text=f'Вы выбрали: {info_item.item}\n\n'
-                                          f'Количество: {info_item.count/10} {e}.\n'
-                                          f'Стоимость: {info_item.price} x {info_item.count/10} = '
-                                          f'{info_item.price * info_item.count/10} руб.',
+                                          f'Количество: {count} {e}.\n'
+                                          f'Стоимость: {info_item.price} x {count} = '
+                                          f'{amount} руб.',
                                      reply_markup=keyboards_get_count(id_product=info_price.id,
                                                                       count_item=info_item.count))
 
@@ -660,8 +709,16 @@ async def order_delivery(callback: CallbackQuery, state: FSMContext):
     for item in all_item_id:
         if item.id_order == id_order:
             i += 1
-            text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-            total += (item.count/10) * item.price
+            if item.count % 10:
+                count = item.count / 10
+            else:
+                count = int(item.count // 10)
+            if (item.price * item.count) % 10:
+                amount = item.price * count
+            else:
+                amount = int(item.price * count)
+            text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+            total += amount
     text += f'\nИтого: {total} руб.\n\n' \
             f'Номер телефона: {phone}\n'
     await callback.message.edit_text(text=text,
@@ -704,8 +761,16 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
         for item in all_item_id:
             if item.id_order == id_order:
                 i += 1
-                text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-                total += (item.count/10) * item.price
+                if item.count // 10:
+                    count = item.count/10
+                else:
+                    count = int(item.count // 10)
+                if (item.price * item.count) % 10:
+                    amount = item.price * count
+                else:
+                    amount = int(item.price * count)
+                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+                total += amount
         text += f'\nИтого: {total} руб.\n\n' \
                 f'Имя заказчика: {name}\n' \
                 f'Номер телефона: {phone}\n'
@@ -763,8 +828,16 @@ async def process_address(callback: CallbackQuery, state: FSMContext):
         for item in all_item_id:
             if item.id_order == id_order:
                 i += 1
-                text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-                total += (item.count/10) * item.price
+                if item.count % 10:
+                    count = item.count / 10
+                else:
+                    count = int(item.count // 10)
+                if (item.price * item.count) % 10:
+                    amount = item.price * count
+                else:
+                    amount = int(item.price * count)
+                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+                total += amount
         text += f'\nИтого: {total} руб.\n\n' \
                 f'Номер телефона: {phone}\n' \
                 f'Адрес доставки: {address}'
@@ -797,8 +870,16 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot):
         for item in all_item_id:
             if item.id_order == id_order:
                 i += 1
-                text += f'{i}. {item.item} {item.count/10} x {item.price} = {(item.count/10) * item.price} руб.\n'
-                total += (item.count/10) * item.price
+                if item.count % 10:
+                    count = item.count / 10
+                else:
+                    count = int(item.count // 10)
+                if (item.price * item.count) % 10:
+                    amount = item.price * count
+                else:
+                    amount = int(item.price * count)
+                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+                total += amount
         text += f'\nИтого: {total} руб.\n\n' \
                 f'Имя заказчика: {name}\n' \
                 f'Номер телефона: {phone}\n' \
