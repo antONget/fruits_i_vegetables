@@ -144,4 +144,6 @@ async def all_message(message: Message, state: FSMContext) -> None:
 
         if message.text == '/replication':
             logging.info(f'all_message message.admin./replication')
+            await message.answer(text='Репликация БД с google sheets запущена...')
             await database_replication()
+            await message.edit_text(text='Репликация БД с google sheets завершена!')

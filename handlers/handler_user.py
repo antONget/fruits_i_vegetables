@@ -131,8 +131,9 @@ async def get_phone_user(message: Message, state: FSMContext) -> None:
                 count_basket += item.count * item.price
     await message.answer(text=f'Друзья, всем доброго времени суток, рады вас видеть в нашем магазине.'
                               f' Здесь вы можете выбрать самые свежие и вкусные фрукты и овощи и заказать'
-                              f' их доставку или самовывоз!'
-                              f'график работы: 10:00-23:00 без перерывов и выходных',
+                              f' их доставку или самовывоз!\n'
+                              f'Минимальная сумма заказа 5000 руб.\n'
+                              f'График работы: 10:00-23:00 без перерывов и выходных',
                          reply_markup=keyboards_main_menu(basket=count_basket))
     await state.set_state(default_state)
 
