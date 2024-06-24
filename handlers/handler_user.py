@@ -686,7 +686,7 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
         media.append(InputMediaPhoto(media=image_1,
                                      caption='Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов\n'
                                              '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n'
-                                             'Контакт для связи: <a href="https://t.me/el_rstmv">наш телеграмм</a>\n',
+                                             'Контакт для связи: <a href="https://t.me/el_rstmv">@el_rstmv</a>\n',
                                      reply_markup=keyboards_main_menu(basket=0),
                                      parse_mode='html',
                                      link_preview_options=LinkPreviewOptions(is_disabled=True)))
