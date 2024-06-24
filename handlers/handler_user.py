@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, LinkPreviewOptions
 from aiogram.filters import CommandStart
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -214,6 +214,22 @@ async def press_button_basket(message: Message):
         text += f'\nИтого: {total} руб.'
         await message.answer(text=text,
                              reply_markup=keyboard_confirm_order(id_order=all_order_id[-1].id_order))
+
+
+@router.message(F.text.startswith('📍 Наши контакты'))
+async def press_button_contact(message: Message):
+    logging.info(f'press_button_contact: {message.chat.id}')
+    media = []
+    image_1 = 'AgACAgIAAxkBAAOpZnmbimV6FaiEk3AICkRs9Mzy_EcAAgLhMRtI39FLSsPzkuwcoccBAAMCAAN4AAM1BA'
+    image_2 = 'AgACAgIAAxkBAAOqZnmcQJGncc-rD3T37wsaBvGPs-4AAgjhMRtI39FLFtmbrG3_dy4BAAMCAAN5AAM1BA'
+    media.append(InputMediaPhoto(media=image_1,
+                                 caption='Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов\n'
+                                         '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n'
+                                         'Контакт для связи: <a href="https://t.me/el_rstmv">@el_rstmv</a>\n',
+                                 parse_mode='html',
+                                 link_preview_options=LinkPreviewOptions(is_disabled=True)))
+    media.append(InputMediaPhoto(media=image_2))
+    await message.answer_media_group(media=media)
 
 
 @router.callback_query(F.data.startswith('product'))
@@ -664,8 +680,20 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
         await callback.message.edit_reply_markup(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся'
                                                       ' для уточнения деталей заказ!',
                                                  reply_markup=None)
-        await callback.message.answer(text='Заказ можно забрать по адресу: АДРЕС',
-                                      reply_markup=keyboards_main_menu(basket=0))
+        media = []
+        image_1 = 'AgACAgIAAxkBAAOpZnmbimV6FaiEk3AICkRs9Mzy_EcAAgLhMRtI39FLSsPzkuwcoccBAAMCAAN4AAM1BA'
+        image_2 = 'AgACAgIAAxkBAAOqZnmcQJGncc-rD3T37wsaBvGPs-4AAgjhMRtI39FLFtmbrG3_dy4BAAMCAAN5AAM1BA'
+        media.append(InputMediaPhoto(media=image_1,
+                                     caption='Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов\n'
+                                             '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n'
+                                             'Контакт для связи: <a href="https://t.me/el_rstmv">наш телеграмм</a>\n',
+                                     reply_markup=keyboards_main_menu(basket=0),
+                                     parse_mode='html',
+                                     link_preview_options=LinkPreviewOptions(is_disabled=True)))
+        media.append(InputMediaPhoto(media=image_2))
+        await callback.message.answer_media_group(media=media)
+        # await callback.message.answer(text='Заказ можно забрать по адресу: проспект Непокорённых, 63к13с2',
+        #                               reply_markup=keyboards_main_menu(basket=0))
         await update_status(id_order=id_order, status=OrderStatus.complete)
         user_info = await get_user_info(tg_id=callback.message.chat.id)
         phone = user_info.phone
