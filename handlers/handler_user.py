@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, LinkPreviewOptions
 from aiogram.filters import CommandStart
@@ -9,11 +11,11 @@ from aiogram.fsm.state import State, StatesGroup, default_state
 from config_data.config import Config, load_config
 from database.requests import get_user_info, add_user, update_name_phone, get_list_product, \
     get_product, get_title, get_info_product, add_order, get_all_order_id, add_item, get_all_item_id, update_status,\
-    OrderStatus, update_address, get_info_item, delete_item
+    OrderStatus, update_address, get_info_item, delete_item, get_info_order, update_amount, update_comment
 from keyboards.keyboard_user import keyboards_get_contact, keyboard_confirm_phone, keyboards_main_menu,\
     keyboards_list_product, keyboards_get_count, keyboard_create_item, keyboard_confirm_order, keyboard_delivery, \
     keyboard_confirm_address, keyboard_finish_order_p, keyboard_finish_order_d, keyboards_list_item_change, \
-    keyboard_change_item
+    keyboard_change_item, keyboard_comment, keyboard_change_status
 from services.get_exel import list_price_to_exel
 from datetime import datetime
 
@@ -30,6 +32,7 @@ class User(StatesGroup):
     phone = State()
     address = State()
     comment = State()
+    amount = State()
 
 
 user_dict = {}
@@ -119,7 +122,7 @@ async def get_phone_user(message: Message, state: FSMContext) -> None:
     # получаем все заказы пользователя
     all_order_id = await get_all_order_id(tg_id=message.chat.id)
     # создаем новый заказ если у пользователя их нет или все завершены
-    if not all_order_id or all_order_id[-1].status == 'complete':
+    if not all_order_id or all_order_id[-1].status in ['complete', 'payed', 'cancelled']:
         count_basket = 0
     elif all_order_id[-1].status == 'complete':
         count_basket = 0
@@ -130,11 +133,13 @@ async def get_phone_user(message: Message, state: FSMContext) -> None:
         for item in all_item_id:
             if item.id_order == all_order_id[-1].id_order:
                 count_basket += item.count * item.price
-    await message.answer(text=f'Друзья, всем доброго времени суток, рады вас видеть в нашем магазине.'
+    await message.answer(text=f'Друзья, всем доброго времени суток, рады вас видеть в нашем оптовом маркете.'
                               f' Здесь вы можете выбрать самые свежие и вкусные фрукты и овощи и заказать'
                               f' их доставку или самовывоз!\n'
                               f'Минимальная сумма заказа 5000 руб.\n'
-                              f'График работы: 10:00-23:00 без перерывов и выходных',
+                              f'График работы: 10:00-22:00 без перерывов и выходных\n\n'
+                              f'Если меню свернется то вы всегда его сможете развернуть нажав на квадратик с точками'
+                              f' в нижней правой части',
                          reply_markup=keyboards_main_menu(basket=count_basket))
     await state.set_state(default_state)
 
@@ -200,7 +205,7 @@ async def press_button_basket(message: Message):
     logging.info(f'press_button_berry: {message.chat.id}')
     all_order_id = await get_all_order_id(tg_id=message.chat.id)
     all_item_id = await get_all_item_id(tg_id=message.chat.id)
-    if not all_order_id or all_order_id[-1].status == 'complete':
+    if not all_order_id or all_order_id[-1].status in ['complete', 'payed', 'cancelled']:
         await message.answer('В вашей корзине нет товаров!')
     else:
         text = 'Ваш заказ:\n\n'
@@ -231,8 +236,11 @@ async def press_button_contact(message: Message):
     image_1 = 'AgACAgIAAxkBAAOpZnmbimV6FaiEk3AICkRs9Mzy_EcAAgLhMRtI39FLSsPzkuwcoccBAAMCAAN4AAM1BA'
     image_2 = 'AgACAgIAAxkBAAOqZnmcQJGncc-rD3T37wsaBvGPs-4AAgjhMRtI39FLFtmbrG3_dy4BAAMCAAN5AAM1BA'
     media.append(InputMediaPhoto(media=image_1,
-                                 caption='Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов\n'
-                                         '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n'
+                                 caption='<b>Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов</b>\n'
+                                         '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n\n'
+                                         'Вы можете забрать заказ самостоятельно или заказать доставку.\n'
+                                         '<u>Условия доставки:</u> доставка в пределах КАД бесплатно. '
+                                         'Если сделаете заказ до 13.00, то доставим в этот же день!\n'
                                          'Контакт для связи: <a href="https://t.me/el_rstmv">@el_rstmv</a>\n',
                                  parse_mode='html',
                                  link_preview_options=LinkPreviewOptions(is_disabled=True)))
@@ -440,7 +448,7 @@ async def add_item_order(callback: CallbackQuery, bot: Bot):
         # получаем все заказы пользователя
         all_order_id = await get_all_order_id(tg_id=callback.message.chat.id)
         # создаем новый заказ если у пользователя их нет или все завершены
-        if not all_order_id or all_order_id[-1].status == 'complete':
+        if not all_order_id or all_order_id[-1].status in ['complete', 'payed', 'cancelled']:
             create_order = {}
             # формирование строки даты для номера заказа
             current_date = datetime.now()
@@ -516,7 +524,7 @@ async def place_an_order(callback: CallbackQuery, bot: Bot):
     id_product = int(callback.data.split('/')[1])
     info_product = await get_info_product(id_product=id_product)
     all_order_id = await get_all_order_id(tg_id=callback.message.chat.id)
-    if not all_order_id or all_order_id[-1].status == 'complete':
+    if not all_order_id or all_order_id[-1].status in ['complete', 'payed', 'cancelled']:
         create_order = {}
         # формирование строки даты для номера заказа
         current_date = datetime.now()
@@ -685,7 +693,9 @@ async def order_confirm(callback: CallbackQuery, state: FSMContext):
             total += (item.count / 10) * item.price
     await state.update_data(id_order=id_order)
     if total < 5000:
-        await callback.message.answer(text='Минимальная сумма заказа 5000 руб.')
+        await callback.message.edit_text(text='Минимальная сумма заказа 5000 руб.',
+                                         reply_markup=None)
+        await asyncio.sleep(1)
         await press_button_basket(message=callback.message)
     else:
         await callback.message.edit_text(text='Как бы вы хотели получить ваш заказ?',
@@ -703,7 +713,9 @@ async def order_delivery(callback: CallbackQuery, state: FSMContext):
     phone = user_info.phone
     name = user_info.name
     all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
-    text = f'{name}, давайте проверим ваш заказ:\n\n'
+    info_order = await get_info_order(id_order=id_order)
+    text = f'{name}, давайте проверим ваш заказ:\n\n' \
+           f'Заказ №{info_order.id}\n'
     i = 0
     total = 0
     for item in all_item_id:
@@ -734,23 +746,26 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
     user_dict[callback.message.chat.id] = await state.get_data()
     id_order = user_dict[callback.message.chat.id]['id_order']
     if answer == 'ok':
-        await callback.message.edit_reply_markup(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся'
-                                                      ' для уточнения деталей заказ!',
-                                                 reply_markup=None)
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся'
+                                           ' для уточнения деталей заказ!',
+                                      reply_markup=keyboards_main_menu(basket=0))
         media = []
         image_1 = 'AgACAgIAAxkBAAOpZnmbimV6FaiEk3AICkRs9Mzy_EcAAgLhMRtI39FLSsPzkuwcoccBAAMCAAN4AAM1BA'
         image_2 = 'AgACAgIAAxkBAAOqZnmcQJGncc-rD3T37wsaBvGPs-4AAgjhMRtI39FLFtmbrG3_dy4BAAMCAAN5AAM1BA'
         media.append(InputMediaPhoto(media=image_1,
-                                     caption='Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей и фруктов\n'
-                                             '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n'
+                                     caption='<b>Наш адрес: проспект Непокорённых, 63к13с2 - отдел овощей'
+                                             ' и фруктов</b>\n'
+                                             '<a href="https://yandex.ru/maps/-/CDvd5Jy7">построить маршрут</a>\n\n'
+                                             'Вы можете забрать заказ самостоятельно или заказать доставку.\n'
+                                             '<u>Условия доставки:</u> доставка в пределах КАД бесплатно. '
+                                             'Если сделаете заказ до 13.00, то доставим в этот же день!\n'
                                              'Контакт для связи: <a href="https://t.me/el_rstmv">@el_rstmv</a>\n',
-                                     reply_markup=keyboards_main_menu(basket=0),
-                                     parse_mode='html',
-                                     link_preview_options=LinkPreviewOptions(is_disabled=True)))
+                                     link_preview_options=LinkPreviewOptions(is_disabled=True),
+                                     parse_mode='html'))
         media.append(InputMediaPhoto(media=image_2))
         await callback.message.answer_media_group(media=media)
-        # await callback.message.answer(text='Заказ можно забрать по адресу: проспект Непокорённых, 63к13с2',
-        #                               reply_markup=keyboards_main_menu(basket=0))
+
         await update_status(id_order=id_order, status=OrderStatus.complete)
         user_info = await get_user_info(tg_id=callback.message.chat.id)
         phone = user_info.phone
@@ -778,7 +793,8 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
         for admin_id in config.tg_bot.admin_ids.split(','):
             try:
                 await bot.send_message(chat_id=int(admin_id),
-                                       text=text)
+                                       text=text,
+                                       reply_markup=keyboard_change_status(id_order=id_order))
             except:
                 pass
     else:
@@ -787,21 +803,38 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
 
 @router.callback_query(F.data == 'delivery')
 async def order_delivery(callback: CallbackQuery, state: FSMContext):
+    """
+    Запрос адреса доставки у пользователя (обновление статуса заказа -> "delivery")
+    :param callback:
+    :param state:
+    :return:
+    """
     logging.info(f'order_confirm: {callback.message.chat.id}')
     await callback.answer()
     user_dict[callback.message.chat.id] = await state.get_data()
     id_order = user_dict[callback.message.chat.id]['id_order']
     await update_status(id_order=id_order, status=OrderStatus.delivery)
-    await callback.message.edit_text(text='Укажите адрес доставки',
-                                     reply_markup=None)
+    await callback.message.edit_text(text='<u>Условия доставки:</u> доставка в пределах КАД бесплатно.\n'
+                                          'Если сделаете заказ до 13.00, то доставим в этот же день!\n'
+                                          'Укажите адрес доставки',
+                                     reply_markup=None,
+                                     parse_mode='html')
     await state.set_state(User.address)
 
 
 @router.message(F.text, StateFilter(User.address))
 async def get_address(message: Message, state: FSMContext):
+    """
+    Получение адреса доставки заказа от пользователя, запрос его подтверждения
+    :param message:
+    :param state:
+    :return:
+    """
     logging.info('get_address')
     await state.set_state(default_state)
+    # получаем введенный пользователем адрес доставки заказа
     address = message.text
+    # обновляем словарь данных (вносим адрес доставки)
     await state.update_data(address=address)
     await message.answer(text=f'Адрес для доставки вашего заказа {address}.\n'
                               f'Верно?',
@@ -810,19 +843,39 @@ async def get_address(message: Message, state: FSMContext):
 
 @router.callback_query(F.data.startswith('address_'))
 async def process_address(callback: CallbackQuery, state: FSMContext):
+    """
+    Обработка подтверждения введенного пользователем адреса доставки и формирование в случае его подтверждения
+    информации о заказе и контактных данных
+    :param callback:
+    :param state:
+    :return:
+    """
     logging.info(f'process_address: {callback.message.chat.id}')
     await callback.answer()
+    # получаем ответ пользователя
     answer = callback.data.split('_')[1]
+    # если адрес введенный пользователем подтвержден
     if answer == 'ok':
+        # получаем данные
         user_dict[callback.message.chat.id] = await state.get_data()
+        # id заказа пользователя
         id_order = user_dict[callback.message.chat.id]['id_order']
+        # адрес доставки
         address = user_dict[callback.message.chat.id]['address']
+        # обновляем адрес доставки в БД для заказа
         await update_address(id_order=id_order, address=address)
+        # получаем информацию о пользователе
         user_info = await get_user_info(tg_id=callback.message.chat.id)
+        # телефон
         phone = user_info.phone
+        # имя
         name = user_info.name
+        # все его товары
         all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
-        text = f'{name}, давайте проверим ваш заказ:\n\n'
+        info_order = await get_info_order(id_order=id_order)
+        # формируем сообщение для подтверждения заказа и контактных данных
+        text = f'{name}, давайте проверим ваш заказ:\n\n' \
+               f'Заказ № {info_order.id}\n'
         i = 0
         total = 0
         for item in all_item_id:
@@ -843,54 +896,198 @@ async def process_address(callback: CallbackQuery, state: FSMContext):
                 f'Адрес доставки: {address}'
         await callback.message.edit_text(text=text,
                                          reply_markup=keyboard_finish_order_d())
+    # если адрес введенный пользователем не подтвержден, то запрашиваем его снова
     else:
         await order_delivery(callback=callback, state=state)
 
 
 @router.callback_query(F.data.startswith('finishd_'))
 async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    """
+    Подтверждение информации о заказе и контактных данных, в случае подтверждения благодарим за заказ
+    и отправляем заказ администратору
+    :param callback:
+    :param state:
+    :param bot:
+    :return:
+    """
     logging.info(f'process_finish: {callback.message.chat.id}')
     await callback.answer()
+    # получаем ответ пользователя
     answer = callback.data.split('_')[1]
-    all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
-    user_dict[callback.message.chat.id] = await state.get_data()
-    id_order = user_dict[callback.message.chat.id]['id_order']
+    # если пользователь подтвердил заказ и контактные данные
     if answer == 'ok':
-        await callback.message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся для уточнения'
-                                           ' деталей доставки!',
-                                      reply_markup=keyboards_main_menu(basket=0))
-        await update_status(id_order=id_order, status=OrderStatus.complete)
-        address = user_dict[callback.message.chat.id]['address']
-        user_info = await get_user_info(tg_id=callback.message.chat.id)
-        phone = user_info.phone
-        name = user_info.name
-        text = f'Заказ №{id_order}:\n\n'
-        i = 0
-        total = 0
-        for item in all_item_id:
-            if item.id_order == id_order:
-                i += 1
-                if item.count % 10:
-                    count = item.count / 10
-                else:
-                    count = int(item.count // 10)
-                if (item.price * item.count) % 10:
-                    amount = item.price * count
-                else:
-                    amount = int(item.price * count)
-                text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
-                total += amount
-        text += f'\nИтого: {total} руб.\n\n' \
-                f'Имя заказчика: {name}\n' \
-                f'Номер телефона: {phone}\n' \
-                f'Адрес доставки: {address}'
-
-        for admin_id in config.tg_bot.admin_ids.split(','):
-            try:
-                await bot.send_message(chat_id=int(admin_id),
-                                       text=text)
-            except:
-                pass
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(text='У вас есть пожелания к заказу?',
+                                      reply_markup=keyboard_comment())
+        await state.set_state(User.comment)
     else:
         await callback.message.edit_text(text='Оформление заказ отменено',
                                          reply_markup=None)
+
+
+@router.message(F.text, StateFilter(User.comment))
+async def get_comment(message: Message, state: FSMContext, bot: Bot):
+    """
+    Получаем комментарий от пользователя
+    :param message: message.text содержит комментарий пользователя
+    :param state:
+    :param bot:
+    :return:
+    """
+    logging.info(f'get_comment: {message.chat.id}')
+    await state.set_state(default_state)
+    await message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся для уточнения'
+                              ' деталей доставки!',
+                         reply_markup=keyboards_main_menu(basket=0))
+    # получаем все товары заказанные пользователем
+    all_item_id = await get_all_item_id(tg_id=message.chat.id)
+    # обновляем словарь данных
+    user_dict[message.chat.id] = await state.get_data()
+    # получаем id заказа
+    id_order = user_dict[message.chat.id]['id_order']
+    # обновляем статус заказа на complete
+    await update_status(id_order=id_order, status=OrderStatus.complete)
+    # получаем адрес доставки
+    address = user_dict[message.chat.id]['address']
+    # получаем информацию о пользователе
+    user_info = await get_user_info(tg_id=message.chat.id)
+    # телефон
+    phone = user_info.phone
+    # имя
+    name = user_info.name
+    info_order = await get_info_order(id_order=id_order)
+    # формируем сообщение для менеджера
+    text = f'Заказ №{info_order.id}-{id_order}:\n\n'
+    i = 0
+    total = 0
+    for item in all_item_id:
+        if item.id_order == id_order:
+            i += 1
+            if item.count % 10:
+                count = item.count / 10
+            else:
+                count = int(item.count // 10)
+            if (item.price * item.count) % 10:
+                amount = item.price * count
+            else:
+                amount = int(item.price * count)
+            text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+            total += amount
+    text += f'\nИтого: {total} руб.\n\n' \
+            f'Имя заказчика: {name}\n' \
+            f'Номер телефона: {phone}\n' \
+            f'Адрес доставки: {address}\n' \
+            f'Комментария к заказу: {message.text}'
+    # производим рассылку с заказом менеджерам
+    for admin_id in config.tg_bot.admin_ids.split(','):
+        try:
+            await bot.send_message(chat_id=int(admin_id),
+                                   text=text,
+                                   reply_markup=keyboard_change_status(id_order))
+        except:
+            pass
+    await update_comment(id_order=id_order, comment=message.text)
+
+
+@router.callback_query(F.data.startswith('comment_pass'))
+async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    """
+    Пропустить добавление комментария к заказу
+    :param callback:
+    :param state:
+    :param bot:
+    :return:
+    """
+    logging.info(f'pass_comment: {callback.message.chat.id}')
+    await callback.answer()
+    await state.set_state(default_state)
+    await callback.message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся для уточнения'
+                                       ' деталей доставки!',
+                                  reply_markup=keyboards_main_menu(basket=0))
+    # получаем все товары заказанные пользователем
+    all_item_id = await get_all_item_id(tg_id=callback.message.chat.id)
+    # обновляем словарь данных
+    user_dict[callback.message.chat.id] = await state.get_data()
+    # получаем id заказа
+    id_order = user_dict[callback.message.chat.id]['id_order']
+    # обновляем статус заказа на complete
+    await update_status(id_order=id_order, status=OrderStatus.complete)
+    # получаем адрес доставки
+    address = user_dict[callback.message.chat.id]['address']
+    # получаем информацию о пользователе
+    user_info = await get_user_info(tg_id=callback.message.chat.id)
+    # телефон
+    phone = user_info.phone
+    # имя
+    name = user_info.name
+    info_order = await get_info_order(id_order=id_order)
+    # формируем сообщение для менеджера
+    text = f'Заказ №{info_order.id}-{id_order}:\n\n'
+    i = 0
+    total = 0
+    for item in all_item_id:
+        if item.id_order == id_order:
+            i += 1
+            if item.count % 10:
+                count = item.count / 10
+            else:
+                count = int(item.count // 10)
+            if (item.price * item.count) % 10:
+                amount = item.price * count
+            else:
+                amount = int(item.price * count)
+            text += f'{i}. {item.item} {count} x {item.price} = {amount} руб.\n'
+            total += amount
+    text += f'\nИтого: {total} руб.\n\n' \
+            f'Имя заказчика: {name}\n' \
+            f'Номер телефона: {phone}\n' \
+            f'Адрес доставки: {address}\n' \
+            f'Комментария к заказу нет'
+    # производим рассылку с заказом менеджерам
+    for admin_id in config.tg_bot.admin_ids.split(','):
+        try:
+            await bot.send_message(chat_id=int(admin_id),
+                                   text=text,
+                                   reply_markup=keyboard_change_status(id_order))
+        except:
+            pass
+
+
+@router.callback_query(F.data.startswith('payed'))
+async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    logging.info(f'pass_comment: {callback.message.chat.id}')
+    await callback.answer()
+    id_order = callback.data.split('#')[1]
+    await state.update_data(id_order=id_order)
+    await callback.message.answer('Укажите сумму оплаченного заказa')
+    await state.set_state(User.amount)
+
+
+@router.message(StateFilter(User.amount), lambda message: message.text.isdigit())
+async def get_amount_order(message: Message, state: FSMContext):
+    logging.info(f'get_amount_order: {message.chat.id}')
+    await state.set_state(default_state)
+    user_dict[message.chat.id] = await state.get_data()
+    id_order = user_dict[message.chat.id]['id_order']
+    await update_status(id_order=id_order, status=OrderStatus.payed)
+    await update_amount(id_order=id_order, amount=int(message.text))
+    info_order = await get_info_order(id_order=id_order)
+    await message.answer(text=f'Сумма {message.text} добавлена в заказ №{info_order.id}-{id_order}')
+
+
+@router.message(StateFilter(User.amount))
+async def error_amount_order(message: Message, state: FSMContext):
+    logging.info(f'error_amount_order: {message.chat.id}')
+    await message.answer(text='Некорректные данные! Введите целое число.')
+
+
+@router.callback_query(F.data.startswith('cancelled'))
+async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    logging.info(f'cancelled_order: {callback.data}')
+    await callback.answer()
+    await state.set_state(default_state)
+    id_order = callback.data.split('#')[1]
+    await update_status(id_order=id_order, status=OrderStatus.cancelled)
+    info_order = await get_info_order(id_order=id_order)
+    await callback.message.answer(text=f'Заказ №{info_order.id}-{id_order} отменен')

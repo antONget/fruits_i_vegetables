@@ -23,6 +23,7 @@ def keyboard_confirm_phone():
 
 
 def keyboards_main_menu(basket: int = 0):
+    logging.info(f'keyboards_main_menu')
     button_1 = KeyboardButton(text='Фрукты  🍊🍎🍐')
     button_2 = KeyboardButton(text='Овощи 🍆🥕🥔')
     button_3 = KeyboardButton(text='Ягоды 🍓🍒🫐')
@@ -38,6 +39,7 @@ def keyboards_main_menu(basket: int = 0):
 
 
 def keyboards_list_product(list_product: list):
+    logging.info(f'keyboards_list_product')
     kb_builder = InlineKeyboardBuilder()
     buttons = []
     for row in list_product:
@@ -51,6 +53,7 @@ def keyboards_list_product(list_product: list):
 
 
 def keyboards_list_item_change(list_item: list):
+    logging.info(f'keyboards_list_item_change')
     kb_builder = InlineKeyboardBuilder()
     buttons = []
     for item in list_item:
@@ -113,7 +116,7 @@ def keyboard_confirm_order(id_order: str):
 
 
 def keyboard_change_item(id_item: int, id_order: str):
-    logging.info(f'keyboard_confirm_order')
+    logging.info(f'keyboard_change_item')
     button_1 = InlineKeyboardButton(text='Изменить', callback_data=f'itemchange#{id_item}')
     button_2 = InlineKeyboardButton(text='Удалить', callback_data=f'itemdel#{id_item}')
     button_3 = InlineKeyboardButton(text='Продолжить', callback_data=f'confirm#{id_order}')
@@ -138,7 +141,7 @@ def keyboard_confirm_address():
 
 
 def keyboard_finish_order_d():
-    logging.info(f'keyboard_finish_order')
+    logging.info(f'keyboard_finish_order_d')
     button_1 = InlineKeyboardButton(text='Да, все верно', callback_data=f'finishd_ok')
     button_2 = InlineKeyboardButton(text='Отмена', callback_data=f'finishd_cancel')
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2]])
@@ -146,8 +149,23 @@ def keyboard_finish_order_d():
 
 
 def keyboard_finish_order_p():
-    logging.info(f'keyboard_finish_order')
+    logging.info(f'keyboard_finish_order_p')
     button_1 = InlineKeyboardButton(text='Да, все верно', callback_data=f'finishp_ok')
     button_2 = InlineKeyboardButton(text='Отмена', callback_data=f'finishp_cancel')
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2]])
+    return keyboard
+
+
+def keyboard_comment():
+    logging.info(f'keyboard_comment')
+    button_1 = InlineKeyboardButton(text='Пропустить', callback_data=f'comment_pass')
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1]])
+    return keyboard
+
+
+def keyboard_change_status(id_order: str):
+    logging.info(f'keyboard_finish_order_p')
+    button_1 = InlineKeyboardButton(text='Заказ оплачен', callback_data=f'payed#{id_order}')
+    button_2 = InlineKeyboardButton(text='Заказ отменен', callback_data=f'cancelled#{id_order}')
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2]])
     return keyboard

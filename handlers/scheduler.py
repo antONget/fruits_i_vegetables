@@ -11,7 +11,8 @@ async def database_replication():
     await delete_price()
     i = 0
     for row in list_order_price[1:]:
-        if row[4] == '✅':
+        print(row)
+        if row[4] == '✅' and '' not in row[1:4]:
             dict_price = {}
             i += 1
             dict_price['id'] = i

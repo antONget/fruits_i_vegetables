@@ -44,11 +44,12 @@ class Order(Base):
     __tablename__ = 'order'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    id_order: Mapped[int] = mapped_column(String(200))
+    id_order: Mapped[str] = mapped_column(String(200))
     telegram_id: Mapped[int] = mapped_column(Integer)
-    address_order: Mapped[int] = mapped_column(String(200), default="none")
-    comment: Mapped[int] = mapped_column(String(200), default="none")
-    status: Mapped[int] = mapped_column(String(50), default='create')
+    address_order: Mapped[str] = mapped_column(String(200), default="none")
+    comment: Mapped[str] = mapped_column(String(200), default="none")
+    amount: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(50), default='create')
 
 
 class Item(Base):
@@ -68,5 +69,4 @@ async def async_main():
         await conn.run_sync(Base.metadata.create_all)
 
 # import asyncio
-# #
 # asyncio.run(async_main())
