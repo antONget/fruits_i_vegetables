@@ -27,12 +27,13 @@ def keyboards_main_menu(basket: int = 0):
     button_1 = KeyboardButton(text='Фрукты  🍊🍎🍐')
     button_2 = KeyboardButton(text='Овощи 🍆🥕🥔')
     button_3 = KeyboardButton(text='Ягоды 🍓🍒🫐')
-    button_4 = KeyboardButton(text='Зелень 🌿')
+    button_4 = KeyboardButton(text='Зелень 🌿🥦🥬')
     button_5 = KeyboardButton(text='📋 Наши цены')
     button_6 = KeyboardButton(text='📍 Наши контакты')
-    button_7 = KeyboardButton(text=f'🛒 Корзина {basket} руб.')
+    button_7 = KeyboardButton(text='👤 Личный кабинет')
+    button_8 = KeyboardButton(text=f'🛒 Корзина {basket} руб.')
     keyboard = ReplyKeyboardMarkup(
-        keyboard=[[button_1, button_2], [button_3, button_4], [button_7], [button_5, button_6]],
+        keyboard=[[button_1, button_2], [button_3, button_4], [button_8], [button_5, button_6, button_7]],
         resize_keyboard=True
     )
     return keyboard

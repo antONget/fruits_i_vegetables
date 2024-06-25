@@ -182,7 +182,7 @@ async def press_button_vegetation(message: Message):
                          reply_markup=keyboards_list_product(list_product=list_product))
 
 
-@router.message(F.text == 'Зелень 🌿')
+@router.message(F.text == 'Зелень 🌿🥦🥬')
 async def press_button_green(message: Message):
     logging.info(f'press_button_green: {message.chat.id}')
     price_list_model = await get_list_product(category='Зелень')
@@ -246,6 +246,13 @@ async def press_button_contact(message: Message):
                                  link_preview_options=LinkPreviewOptions(is_disabled=True)))
     media.append(InputMediaPhoto(media=image_2))
     await message.answer_media_group(media=media)
+
+
+@router.message(F.text.startswith('👤 Личный кабинет'))
+async def press_button_cabinet(message: Message):
+    logging.info(f'press_button_cabinet: {message.chat.id}')
+    await message.answer(text='Раздел в разработке.\n'
+                              'Здесь вы сможете увидеть ваши заказы и узнать о накопительной системе скидок!')
 
 
 @router.callback_query(F.data.startswith('product'))
