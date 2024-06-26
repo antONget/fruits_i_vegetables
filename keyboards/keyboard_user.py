@@ -166,7 +166,8 @@ def keyboard_comment():
 
 def keyboard_change_status(id_order: str):
     logging.info(f'keyboard_finish_order_p')
-    button_1 = InlineKeyboardButton(text='Заказ оплачен', callback_data=f'payed#{id_order}')
-    button_2 = InlineKeyboardButton(text='Заказ отменен', callback_data=f'cancelled#{id_order}')
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1, button_2]])
+    button_1 = InlineKeyboardButton(text='Заказ оплачен', callback_data=f'payedpayed#{id_order}')
+    button_2 = InlineKeyboardButton(text='Заказ изменен', callback_data=f'payed#{id_order}')
+    button_3 = InlineKeyboardButton(text='Заказ отменен', callback_data=f'cancelled#{id_order}')
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[button_1], [button_2, button_3]])
     return keyboard

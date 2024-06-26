@@ -1051,6 +1051,7 @@ async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
             f'Номер телефона: {phone}\n' \
             f'Адрес доставки: {address}\n' \
             f'Комментария к заказу нет'
+    await update_amount(id_order=id_order, amount=total)
     # производим рассылку с заказом менеджерам
     for admin_id in config.tg_bot.admin_ids.split(','):
         try:
@@ -1061,9 +1062,9 @@ async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
             pass
 
 
-@router.callback_query(F.data.startswith('payed'))
-async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    logging.info(f'pass_comment: {callback.message.chat.id}')
+@router.callback_query(F.data.startswith('payed#'))
+async def payed_change_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    logging.info(f'payed_change_order: {callback.message.chat.id}')
     await callback.answer()
     id_order = callback.data.split('#')[1]
     await state.update_data(id_order=id_order)
@@ -1080,6 +1081,7 @@ async def get_amount_order(message: Message, state: FSMContext):
     await update_status(id_order=id_order, status=OrderStatus.payed)
     await update_amount(id_order=id_order, amount=int(message.text))
     info_order = await get_info_order(id_order=id_order)
+    await message.edit_reply_markup(reply_markup=None)
     await message.answer(text=f'Сумма {message.text} добавлена в заказ №{info_order.id}-{id_order}')
 
 
@@ -1089,7 +1091,7 @@ async def error_amount_order(message: Message, state: FSMContext):
     await message.answer(text='Некорректные данные! Введите целое число.')
 
 
-@router.callback_query(F.data.startswith('cancelled'))
+@router.callback_query(F.data.startswith('cancelled#'))
 async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     logging.info(f'cancelled_order: {callback.data}')
     await callback.answer()
@@ -1097,4 +1099,17 @@ async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     id_order = callback.data.split('#')[1]
     await update_status(id_order=id_order, status=OrderStatus.cancelled)
     info_order = await get_info_order(id_order=id_order)
+    await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(text=f'Заказ №{info_order.id}-{id_order} отменен')
+
+
+@router.callback_query(F.data.startswith('payedpayed#'))
+async def payed_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    logging.info(f'payed_order: {callback.data}')
+    await callback.answer()
+    await state.set_state(default_state)
+    id_order = callback.data.split('#')[1]
+    await update_status(id_order=id_order, status=OrderStatus.payed)
+    info_order = await get_info_order(id_order=id_order)
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(text=f'Заказ №{info_order.id}-{id_order} оплачен')
