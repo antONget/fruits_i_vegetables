@@ -1058,8 +1058,11 @@ async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
             await bot.send_message(chat_id=int(admin_id),
                                    text=text,
                                    reply_markup=keyboard_change_status(id_order))
+
         except:
             pass
+    await bot.send_message(chat_id=-1002220286103,
+                           text=text)
 
 
 @router.callback_query(F.data.startswith('payed#'))
@@ -1073,7 +1076,7 @@ async def payed_change_order(callback: CallbackQuery, state: FSMContext, bot: Bo
 
 
 @router.message(StateFilter(User.amount), lambda message: message.text.isdigit())
-async def get_amount_order(message: Message, state: FSMContext):
+async def get_amount_order(message: Message, state: FSMContext, bot: Bot):
     logging.info(f'get_amount_order: {message.chat.id}')
     await state.set_state(default_state)
     user_dict[message.chat.id] = await state.get_data()
@@ -1083,7 +1086,8 @@ async def get_amount_order(message: Message, state: FSMContext):
     info_order = await get_info_order(id_order=id_order)
     await message.edit_reply_markup(reply_markup=None)
     await message.answer(text=f'Сумма {message.text} добавлена в заказ №{info_order.id}-{id_order}')
-
+    await bot.send_message(chat_id=-1002220286103,
+                           text=f'Сумма {message.text} добавлена в заказ №{info_order.id}-{id_order}')
 
 @router.message(StateFilter(User.amount))
 async def error_amount_order(message: Message, state: FSMContext):
@@ -1101,6 +1105,8 @@ async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     info_order = await get_info_order(id_order=id_order)
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(text=f'Заказ №{info_order.id}-{id_order} отменен')
+    await bot.send_message(chat_id=-1002220286103,
+                           text=f'Заказ №{info_order.id}-{id_order} отменен')
 
 
 @router.callback_query(F.data.startswith('payedpayed#'))
@@ -1113,3 +1119,5 @@ async def payed_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     info_order = await get_info_order(id_order=id_order)
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(text=f'Заказ №{info_order.id}-{id_order} оплачен')
+    await bot.send_message(chat_id=-1002220286103,
+                           text=f'Заказ №{info_order.id}-{id_order} оплачен')
