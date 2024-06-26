@@ -795,7 +795,8 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
                 total += amount
         text += f'\nИтого: {total} руб.\n\n' \
                 f'Имя заказчика: {name}\n' \
-                f'Номер телефона: {phone}\n'
+                f'Номер телефона: {phone}\n' \
+                f'Способ получения: самовывоз'
 
         for admin_id in config.tg_bot.admin_ids.split(','):
             try:
@@ -804,6 +805,8 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
                                        reply_markup=keyboard_change_status(id_order=id_order))
             except:
                 pass
+        await bot.send_message(chat_id=-1002220286103,
+                               text=text)
     else:
         await press_button_basket(message=callback.message)
 
@@ -995,6 +998,8 @@ async def get_comment(message: Message, state: FSMContext, bot: Bot):
         except:
             pass
     await update_comment(id_order=id_order, comment=message.text)
+    await bot.send_message(chat_id=-1002220286103,
+                           text=text)
 
 
 @router.callback_query(F.data.startswith('comment_pass'))
