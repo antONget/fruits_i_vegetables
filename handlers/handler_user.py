@@ -777,7 +777,8 @@ async def process_finish_p(callback: CallbackQuery, state: FSMContext, bot: Bot)
         user_info = await get_user_info(tg_id=callback.message.chat.id)
         phone = user_info.phone
         name = user_info.name
-        text = f'Заказ №{id_order}:\n\n'
+        info_order = get_info_order(id_order=id_order)
+        text = f'Заказ №{info_order.id}-{id_order}:\n\n'
         i = 0
         total = 0
         for item in all_item_id:
