@@ -1,14 +1,11 @@
 from database.models import User, Price, Order, Item
 from database.models import async_session
 from sqlalchemy.sql import and_
-# Для тестов функций надо раскоментить, а выше закомменть
-# from models import User
-# from models import async_session
 
 
 import logging
 from dataclasses import dataclass
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, delete
 
 """ ------------- ADD METHODS -------------"""
 
@@ -48,8 +45,8 @@ async def add_item(data: dict):
     """
     logging.info(f'add_item {data}')
     async with async_session() as session:
-        item = await session.scalar(select(Item).where(and_(Item.item == data["item"], Item.id_order == data["id_order"])))
-        # print(Item.item == data["item"], Item.item == data["id_order"])
+        item = await session.scalar(select(Item).where(and_(Item.item == data["item"],
+                                                            Item.id_order == data["id_order"])))
         if not item:
             session.add(Item(**data))
             await session.commit()

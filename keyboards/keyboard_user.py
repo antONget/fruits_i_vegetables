@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder, KeyboardBuilder
 import logging
 
 
@@ -22,18 +22,34 @@ def keyboard_confirm_phone():
     return keyboard
 
 
+def keyboards_main_category(list_category: list, basket: int = 0):
+    logging.info(f'keyboards_list_product')
+    kb_builder = ReplyKeyboardBuilder()
+    buttons = []
+    for category in list_category:
+        text = category
+        buttons.append(KeyboardButton(text=text))
+    kb_builder.row(*buttons, width=2)
+    button_8 = KeyboardButton(text=f'🛒 Корзина {basket} руб.')
+    home = KeyboardButton(text=f'🏠 Главное')
+    kb_builder.row(button_8)
+    kb_builder.row(home)
+    return kb_builder.as_markup(resize_keyboard=True)
+
+
 def keyboards_main_menu(basket: int = 0):
     logging.info(f'keyboards_main_menu')
-    button_1 = KeyboardButton(text='Фрукты  🍊🍎🍐')
-    button_2 = KeyboardButton(text='Овощи 🍆🥕🥔')
-    button_3 = KeyboardButton(text='Ягоды 🍓🍒🫐')
-    button_4 = KeyboardButton(text='Зелень 🌿🥦🥬')
+    # button_1 = KeyboardButton(text='Фрукты  🍊🍎🍐')
+    # button_2 = KeyboardButton(text='Овощи 🍆🥕🥔')
+    # button_3 = KeyboardButton(text='Ягоды 🍓🍒🫐')
+    # button_4 = KeyboardButton(text='Зелень 🌿🥦🥬')
+    button_1 = KeyboardButton(text='🛍 Магазин')
     button_5 = KeyboardButton(text='📋 Наши цены')
     button_6 = KeyboardButton(text='📍 Наши контакты')
     button_7 = KeyboardButton(text='👤 Личный кабинет')
     button_8 = KeyboardButton(text=f'🛒 Корзина {basket} руб.')
     keyboard = ReplyKeyboardMarkup(
-        keyboard=[[button_1, button_2], [button_3, button_4], [button_8], [button_5, button_6, button_7]],
+        keyboard=[[button_1], [button_8], [button_5, button_6, button_7]],
         resize_keyboard=True
     )
     return keyboard
@@ -54,6 +70,11 @@ def keyboards_list_product(list_product: list):
 
 
 def keyboards_list_item_change(list_item: list):
+    """
+    Клавиатура для изменения состава и количества товаров при его формлении
+    :param list_item: список товаров
+    :return:
+    """
     logging.info(f'keyboards_list_item_change')
     kb_builder = InlineKeyboardBuilder()
     buttons = []

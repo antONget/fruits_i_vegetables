@@ -6,6 +6,8 @@ from environs import Env
 class TgBot:
     token: str
     admin_ids: str
+    chanel_id: int
+    support: str
 
 
 
@@ -18,4 +20,6 @@ def load_config(path: str = None) -> Config:
     env = Env()
     env.read_env(path)
     return Config(tg_bot=TgBot(token=env('BOT_TOKEN'),
-                               admin_ids=env('ADMIN_IDS')))
+                               admin_ids=env('ADMIN_IDS'),
+                               chanel_id=env('CHANEL_ID'),
+                               support=env('SUPPORT')))

@@ -19,14 +19,13 @@ class User(Base):
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(200))
+    username: Mapped[str] = mapped_column(String(200), default="None")
     name: Mapped[str] = mapped_column(String(200))
     phone: Mapped[str] = mapped_column(String(200))
     referral_link: Mapped[str] = mapped_column(String(200), default="None")
     referral_users: Mapped[str] = mapped_column(String, default="")
     referer_id: Mapped[int] = mapped_column(Integer, default=0)
     balance: Mapped[int] = mapped_column(Float, default=0.0)
-    status: Mapped[str] = mapped_column(String(200), default="None")
 
 
 class Price(Base):
