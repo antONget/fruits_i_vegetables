@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
-from aiogram.fsm.state import State, StatesGroup, default_state
+from aiogram.fsm.state import State, StatesGroup
 
 from database.requests import get_list_users, get_user_info
 from config_data.config import Config, load_config
@@ -46,7 +46,7 @@ async def all_message(message: Message, bot: Bot, state: FSMContext) -> None:
                            text=message_id,
                            parse_mode='html')
     await message.answer(text='Сообщение отправлено')
-    await state.set_state(default_state)
+    await state.set_state(state=None)
 
 
 @router.message(StateFilter(Admin.message_all))
@@ -67,7 +67,7 @@ async def all_message(message: Message, bot: Bot, state: FSMContext) -> None:
             except:
                 pass
     await message.edit_text(text='Рассылка завершена...')
-    await state.set_state(default_state)
+    await state.set_state(state=None)
 
 
 @router.message()

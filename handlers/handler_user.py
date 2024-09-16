@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, 
 from aiogram.filters import CommandStart
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup, default_state
+from aiogram.fsm.state import State, StatesGroup
 
 
 from config_data.config import Config, load_config
@@ -15,7 +15,7 @@ from services.get_exel import list_price_to_exel
 from datetime import datetime
 import logging
 from filter.user_filter import validate_russian_phone_number
-
+from enum import Enum
 router = Router()
 config: Config = load_config()
 
@@ -40,7 +40,7 @@ async def process_start_command_user(message: Message, state: FSMContext) -> Non
     :return:
     """
     logging.info("process_start_command_user")
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     user = await get_user_info(tg_id=message.chat.id)
     # если пользователь еще не в БД
     if not user:
@@ -161,7 +161,7 @@ async def get_phone_user(message: Message, state: FSMContext) -> None:
                               f'Если меню свернется то вы всегда его сможете развернуть нажав на квадратик с точками'
                               f' в нижней правой части',
                          reply_markup=keyboards_main_menu(basket=count_basket))
-    await state.set_state(default_state)
+    await state.set_state(state=None)
 
 
 @router.callback_query(F.data == 'continue_user')
@@ -213,7 +213,7 @@ async def press_button_continue_user(callback: CallbackQuery, state: FSMContext,
     await callback.message.answer(text='Для онлайн-заказа выберите нужный раздел. Если вы не завершили предыдущий '
                                        'заказ, обратите внимание на корзину.',
                                   reply_markup=keyboards_main_menu(basket=count_basket))
-    await state.set_state(default_state)
+    await state.set_state(state=None)
 
 
 @router.message(F.text == '📋 Наши цены')
@@ -262,7 +262,7 @@ async def press_home(message: Message, state: FSMContext):
     await message.answer(text='Для онлайн-заказа выберите нужный раздел. Если вы не завершили предыдущий '
                               'заказ, обратите внимание на корзину.',
                          reply_markup=keyboards_main_menu(basket=count_basket))
-    await state.set_state(default_state)
+    await state.set_state(state=None)
 
 
 @router.message(F.text.startswith('🛒 Корзина'))

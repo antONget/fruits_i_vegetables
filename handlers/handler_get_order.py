@@ -1,7 +1,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto, LinkPreviewOptions
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State, default_state
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import StateFilter
 
 import database.requests as rq
@@ -177,7 +177,7 @@ async def get_address(message: Message, state: FSMContext):
     :return:
     """
     logging.info('get_address')
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     # получаем введенный пользователем адрес доставки заказа
     address = message.text
     # обновляем словарь данных (вносим адрес доставки)
@@ -281,7 +281,7 @@ async def get_comment(message: Message, state: FSMContext, bot: Bot):
     :return:
     """
     logging.info(f'get_comment: {message.chat.id}')
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     await message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся для уточнения'
                               ' деталей доставки!',
                          reply_markup=kb.keyboards_main_menu(basket=0))
@@ -348,7 +348,7 @@ async def pass_comment(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """
     logging.info(f'pass_comment: {callback.message.chat.id}')
     await callback.answer()
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     await callback.message.answer(text='Благодарим вас за заказ, в ближайшее время с вами свяжутся для уточнения'
                                        ' деталей доставки!',
                                   reply_markup=kb.keyboards_main_menu(basket=0))
@@ -418,7 +418,7 @@ async def payed_change_order(callback: CallbackQuery, state: FSMContext):
 @router.message(StateFilter(User.amount), lambda message: message.text.isdigit())
 async def get_amount_order(message: Message, state: FSMContext, bot: Bot):
     logging.info(f'get_amount_order: {message.chat.id}')
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     user_dict[message.chat.id] = await state.get_data()
     id_order = user_dict[message.chat.id]['id_order']
     await rq.update_status(id_order=id_order, status=rq.OrderStatus.payed)
@@ -440,7 +440,7 @@ async def error_amount_order(message: Message):
 async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     logging.info(f'cancelled_order: {callback.data}')
     await callback.answer()
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     id_order = callback.data.split('#')[1]
     await rq.update_status(id_order=id_order, status=rq.OrderStatus.cancelled)
     info_order = await rq.get_info_order(id_order=id_order)
@@ -454,7 +454,7 @@ async def cancelled_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
 async def payed_order(callback: CallbackQuery, state: FSMContext, bot: Bot):
     logging.info(f'payed_order: {callback.data}')
     await callback.answer()
-    await state.set_state(default_state)
+    await state.set_state(state=None)
     id_order = callback.data.split('#')[1]
     await rq.update_status(id_order=id_order, status=rq.OrderStatus.payed)
     info_order = await rq.get_info_order(id_order=id_order)

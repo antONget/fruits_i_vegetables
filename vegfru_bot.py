@@ -1,13 +1,16 @@
-import asyncio
-import logging
-
 from aiogram import Bot, Dispatcher
 from aiogram.types import FSInputFile
+from aiogram.types import ErrorEvent
+from aiogram.fsm.storage.redis import RedisStorage, Redis
+
+# import aioredis
 from config_data.config import Config, load_config
 from handlers import handler_user, other_handlers
 from handlers.handler_shop import router_shop
 from handlers.handler_get_order import router
-from aiogram.types import ErrorEvent
+
+import asyncio
+import logging
 import traceback
 # Инициализируем logger
 logger = logging.getLogger(__name__)
@@ -19,8 +22,8 @@ async def main():
     # Конфигурируем логирование
     logging.basicConfig(
         level=logging.INFO,
-        filename="py_log.log",
-        filemode='w',
+        # filename="py_log.log",
+        # filemode='w',
         format='%(filename)s:%(lineno)d #%(levelname)-8s '
                '[%(asctime)s] - %(name)s - %(message)s')
 
@@ -32,7 +35,8 @@ async def main():
 
     # Инициализируем бот и диспетчер
     bot = Bot(token=config.tg_bot.token)
-    dp = Dispatcher()
+    storage = RedisStorage.from_url('redis://127.0.0.1:6379/0')
+    dp = Dispatcher(storage=storage)
 
     # Регистрируем router в диспетчере
     dp.include_router(handler_user.router)
